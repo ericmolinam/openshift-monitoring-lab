@@ -1,0 +1,29 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: prometheus
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"  # Links to the Grafana CR with label dashboards=grafana
+  valuesFrom:
+    # Fetch sensitive values from Secrets instead of embedding in YAML
+    - targetPath: "secureJsonData.httpHeaderValue1"
+      valueFrom:
+        secretKeyRef:
+          name: "prometheus-credentials"
+          key: "PROMETHEUS_TOKEN"
+  datasource:
+    name: Prometheus
+    type: prometheus
+    access: proxy       # Grafana backend proxies requests to Prometheus (required for in-cluster URLs)
+    url: https://thanos-querier.openshift-monitoring.svc:9091
+    isDefault: true     # Default datasource for new dashboards
+    editable: true      # Users can modify settings in the UI
+    jsonData:
+      tlsSkipVerify: true           # Accept self-signed certs from OpenShift monitoring
+      timeInterval: "5s"            # Minimum step interval (matches default scrape interval)
+      httpHeaderName1: "Authorization"  # Send Bearer token via Authorization header
+    secureJsonData:
+      httpHeaderValue1: "${PROMETHEUS_TOKEN}"  # Injected from Secret at runtime

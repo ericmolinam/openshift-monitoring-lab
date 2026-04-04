@@ -1,0 +1,85 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: node-resources
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"
+  folder: "Cluster"
+  json: |
+    {
+      "title": "Node Resources",
+      "uid": "node-resources",
+      "tags": ["nodes", "openshift"],
+      "style": "dark",
+      "timezone": "browser",
+      "editable": true,
+      "refresh": "30s",
+      "time": { "from": "now-3h", "to": "now" },
+      "schemaVersion": 30,
+      "templating": {
+        "list": [{
+          "name": "node",
+          "type": "query",
+          "label": "Node",
+          "query": "label_values(node_uname_info, nodename)",
+          "multi": true,
+          "includeAll": true,
+          "current": {}
+        }]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "CPU Usage by Mode",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "sum(rate(node_cpu_seconds_total{node=~\"$node\", mode!=\"idle\"}[5m])) by (node, mode)",
+            "legendFormat": "{{node}} - {{mode}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "short" } }
+        },
+        {
+          "id": 2,
+          "title": "Memory Available",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "node_memory_MemAvailable_bytes{node=~\"$node\"}",
+            "legendFormat": "{{node}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "bytes" } }
+        },
+        {
+          "id": 3,
+          "title": "Disk Space Available",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "node_filesystem_avail_bytes{node=~\"$node\", fstype!~\"tmpfs|overlay\"}",
+            "legendFormat": "{{node}} {{mountpoint}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "bytes" } }
+        },
+        {
+          "id": 4,
+          "title": "Network Throughput",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(node_network_receive_bytes_total{node=~\"$node\", device!~\"lo|veth.*\"}[5m])) by (node)",
+              "legendFormat": "rx {{node}}"
+            },
+            {
+              "expr": "sum(rate(node_network_transmit_bytes_total{node=~\"$node\", device!~\"lo|veth.*\"}[5m])) by (node)",
+              "legendFormat": "tx {{node}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "Bps" } }
+        }
+      ]
+    }

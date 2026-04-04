@@ -1,0 +1,73 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: controller-manager
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"
+  folder: "Cluster"
+  json: |
+    {
+      "title": "Controller Manager",
+      "uid": "controller-manager",
+      "tags": ["kubernetes", "controller-manager", "openshift"],
+      "style": "dark",
+      "timezone": "browser",
+      "editable": true,
+      "refresh": "30s",
+      "time": { "from": "now-3h", "to": "now" },
+      "schemaVersion": 30,
+      "panels": [
+        {
+          "id": 1,
+          "title": "Workqueue Depth by Controller",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "sum(workqueue_depth{job=~\".*controller.*\"}) by (name)",
+            "legendFormat": "{{name}}"
+          }]
+        },
+        {
+          "id": 2,
+          "title": "Queue Wait Duration p99",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=~\".*controller.*\"}[5m])) by (name, le))",
+            "legendFormat": "p99 {{name}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 3,
+          "title": "Work Duration p99",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{job=~\".*controller.*\"}[5m])) by (name, le))",
+            "legendFormat": "p99 {{name}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 4,
+          "title": "Reconcile Rate (success vs error)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(controller_runtime_reconcile_total{result=\"success\"}[5m])) by (controller)",
+              "legendFormat": "success {{controller}}"
+            },
+            {
+              "expr": "sum(rate(controller_runtime_reconcile_total{result=\"error\"}[5m])) by (controller)",
+              "legendFormat": "error {{controller}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "ops" } }
+        }
+      ]
+    }

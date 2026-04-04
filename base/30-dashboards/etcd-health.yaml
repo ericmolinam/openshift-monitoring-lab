@@ -1,0 +1,101 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: etcd-health
+  namespace: grafana
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "grafana"
+  folder: "Cluster"
+  json: |
+    {
+      "title": "etcd Health",
+      "uid": "etcd-health",
+      "tags": ["etcd", "openshift"],
+      "style": "dark",
+      "timezone": "browser",
+      "editable": true,
+      "refresh": "30s",
+      "time": { "from": "now-3h", "to": "now" },
+      "schemaVersion": 30,
+      "panels": [
+        {
+          "id": 1,
+          "title": "etcd Has Leader",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+          "targets": [{
+            "expr": "etcd_server_has_leader",
+            "legendFormat": "{{instance}}"
+          }],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "steps": [
+                  { "color": "red", "value": 0 },
+                  { "color": "green", "value": 1 }
+                ]
+              },
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "No Leader" }, "1": { "text": "Has Leader" } } }
+              ]
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "DB Size (bytes)",
+          "type": "timeseries",
+          "gridPos": { "x": 4, "y": 0, "w": 10, "h": 8 },
+          "targets": [{
+            "expr": "etcd_mvcc_db_total_size_in_bytes",
+            "legendFormat": "{{instance}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "bytes" } }
+        },
+        {
+          "id": 3,
+          "title": "WAL Fsync Duration (p99)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) by (instance, le))",
+            "legendFormat": "p99 {{instance}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 4,
+          "title": "Backend Commit Duration (p99)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket[5m])) by (instance, le))",
+            "legendFormat": "p99 {{instance}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 5,
+          "title": "Peer Round-Trip Time (p99)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum(rate(etcd_network_peer_round_trip_time_seconds_bucket[5m])) by (instance, le))",
+            "legendFormat": "p99 {{instance}}"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "id": 6,
+          "title": "Total Keys",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+          "targets": [{
+            "expr": "etcd_debugging_mvcc_keys_total",
+            "legendFormat": "{{instance}}"
+          }]
+        }
+      ]
+    }
