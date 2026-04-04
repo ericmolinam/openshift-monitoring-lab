@@ -73,8 +73,10 @@ helm upgrade -i grafana-operator grafana/grafana-operator \
   --set namespaceScope=true \
   --set watchNamespaces="grafana"
 
-kubectl apply -k base/
-sleep 10
+kubectl apply -k grafana/
+
+echo "Waiting for Grafana Operator to be ready..."
+sleep 60
 
 # 8. Print the Grafana route
 ROUTE=$(oc -n grafana get route grafana-route -o jsonpath='{.spec.host}')
