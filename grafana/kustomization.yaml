@@ -4,8 +4,4 @@ kind: Kustomization
 resources:
   - grafana.yaml
   - grafanadatasource.yaml
-  - grafanadashboard/cluster-overview.yaml
-  - grafanadashboard/controller-manager.yaml
-  - grafanadashboard/etcd-health.yaml
-  - grafanadashboard/kube-apiserver.yaml
-  - grafanadashboard/node-resources.yaml
+  - grafanadashboard/node-overview.yaml
