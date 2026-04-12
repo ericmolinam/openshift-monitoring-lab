@@ -3362,8 +3362,8 @@ spec:
       },
       "timepicker": {},
       "timezone": "browser",
-      "title": "OpenShift / Views / Nodes",
+      "title": "OpenShift - USE Metrics",
       "uid": "ocp_views_nodes",
       "version": 3,
-      "weekStart": ""
+      "weekStart": "Monday"
     }

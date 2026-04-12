@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
   - grafana.yaml
   - grafanadatasource.yaml
-  - grafanadashboard/node-overview.yaml
+  - grafanadashboard/use-metrics.yaml
