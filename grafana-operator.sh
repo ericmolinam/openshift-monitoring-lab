@@ -11,6 +11,18 @@ metadata:
 data:
   config.yaml: |
     enableUserWorkload: true
+    prometheusK8s:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 10Gi
+    alertmanagerMain:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 5Gi
 EOF
 
 # 2. Create Grafana project
