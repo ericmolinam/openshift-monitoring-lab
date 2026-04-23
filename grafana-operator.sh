@@ -120,3 +120,23 @@ ROUTE=$(oc -n grafana get route grafana-route -o jsonpath='{.spec.host}')
 echo -e "\nGrafana is available at: https://$ROUTE\n"
 
 echo "Day 0 bootstrap complete."
+
+
+# # 1. Remove Grafana operator CRs
+# kubectl delete -k grafana/ --ignore-not-found
+
+# # 2. Uninstall Grafana Operator Helm release
+# helm uninstall grafana-operator -n grafana
+
+# # 3. Remove cluster-scoped RBAC
+# oc delete clusterrolebinding grafana-sa-cluster-monitoring-view --ignore-not-found
+# oc delete clusterrolebinding grafana-sa-auth-delegator --ignore-not-found
+
+# # 4. Delete the grafana namespace (removes all namespaced resources with it)
+# oc delete project grafana --ignore-not-found
+
+# # 5. Wait for namespace to be fully gone before re-running
+# oc wait --for=delete project/grafana --timeout=120s
+
+# # 6. (Optional) Remove user workload monitoring config
+# oc delete configmap cluster-monitoring-config -n openshift-monitoring --ignore-not-found
