@@ -11,13 +11,19 @@ spec:
       port:
         targetPort: proxy          # Route forwards to oauth-proxy, not directly to Grafana
       tls:
-        termination: Reencrypt     # Proxy serves TLS; OCP re-encrypts to the backend
+        termination: reencrypt     # Proxy serves TLS; OCP re-encrypts to the backend
         insecureEdgeTerminationPolicy: Redirect
   service:
     metadata:
       annotations:
         # Triggers OpenShift to auto-generate a serving TLS cert as secret grafana-tls
         service.beta.openshift.io/serving-cert-secret-name: grafana-tls
+    spec:
+      ports:
+        - name: proxy
+          port: 9091
+          protocol: TCP
+          targetPort: proxy
   config:
     log:
       mode: "console"
@@ -45,7 +51,7 @@ spec:
                 secretName: grafana-proxy-session-secret
           containers:
             - name: grafana-proxy
-              image: quay.io/openshift/origin-oauth-proxy:4.14
+              image: image-registry.openshift-image-registry.svc:5000/openshift/oauth-proxy:v4.4
               ports:
                 - name: proxy
                   containerPort: 9091
