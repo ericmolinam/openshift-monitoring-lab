@@ -28,13 +28,16 @@ EOF
 # 2. Create Grafana project
 oc get project grafana &>/dev/null || { oc new-project grafana >/dev/null && echo "project.project.openshift.io/grafana created"; }
 
-# 3. Create service account
+# 3. Create service account with OAuth redirect annotation
 oc apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: grafana-sa
   namespace: grafana
+  annotations:
+    # Registers the Grafana Route as the valid OAuth redirect URI for this SA
+    serviceaccounts.openshift.io/oauth-redirectreference.grafana: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}'
 EOF
 
 # 4. Grant cluster-monitoring-view role to service account
@@ -53,7 +56,29 @@ subjects:
   namespace: grafana
 EOF
 
-# 5. Create long-lived SA token secret for Prometheus authentication
+# 5. Grant auth-delegator so the oauth-proxy can validate tokens with the OpenShift API
+oc apply -f - <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grafana-sa-auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: grafana-sa
+  namespace: grafana
+EOF
+
+# 6. Create session secret for oauth-proxy cookie encryption
+oc create secret generic grafana-proxy-session-secret \
+  --from-literal=session_secret=$(head -c 43 /dev/urandom | base64) \
+  -n grafana \
+  --dry-run=client -o yaml | oc apply --server-side -f -
+
+# 7. Create long-lived SA token secret for Prometheus authentication
 oc apply -f - <<EOF
 apiVersion: v1
 kind: Secret
@@ -68,14 +93,14 @@ EOF
 # Wait for token to be populated
 sleep 5
 
-# 6. Sync prometheus-credentials secret with the current SA token
+# 8. Sync prometheus-credentials secret with the current SA token
 TOKEN=$(oc -n grafana get secret grafana-sa-token --template='{{ .data.token | base64decode }}')
 oc create secret generic prometheus-credentials \
   --from-literal=PROMETHEUS_TOKEN="Bearer $TOKEN" \
   -n grafana \
   --dry-run=client -o yaml | oc apply --server-side -f -
 
-# 7. Add Grafana Helm repo and install Grafana Operator
+# 9. Add Grafana Helm repo and install Grafana Operator
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 helm upgrade -i grafana-operator grafana/grafana-operator \
@@ -90,8 +115,8 @@ kubectl apply -k grafana/
 echo "Waiting for Grafana Operator to be ready..."
 sleep 60
 
-# 8. Print the Grafana route
+# 10. Print the Grafana route
 ROUTE=$(oc -n grafana get route grafana-route -o jsonpath='{.spec.host}')
-echo -e "\nGrafana is available at: http://$ROUTE\n"
+echo -e "\nGrafana is available at: https://$ROUTE\n"
 
 echo "Day 0 bootstrap complete."
